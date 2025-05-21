@@ -1,0 +1,45 @@
+name: Run WebdriverIO Tests and Upload Allure Report
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+
+jobs:
+  wdio-run:
+    runs-on: ubuntu-22.04
+
+    steps:
+      # 1. Checkout the repository
+      - uses: actions/checkout@v4
+
+      # 2. Setup Node.js
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+
+      # 3. Install dependencies
+      - name: Install dependencies
+        run: npm ci
+
+      # 4. Create reports directory
+      - name: Create reports directory
+        run: mkdir -p reports/allure-results
+
+      # 5. Run WebdriverIO tests headless
+      - name: Run WebdriverIO tests
+        run: |
+          npx wdio run wdio.conf.js
+
+      # 6. Generate Allure report
+      - name: Generate Allure HTML report
+        run: |
+          npx allure generate reports/allure-results --clean -o reports/allure-report
+
+      # 7. Upload Allure HTML report as artifact
+      - name: Upload Allure report
+        uses: actions/upload-artifact@v4
+        with:
+          name: wdio-allure-report
+          path: reports/allure-report
