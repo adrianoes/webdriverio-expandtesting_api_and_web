@@ -9,7 +9,7 @@ API and WEB testing in [expandtesting](https://practice.expandtesting.com/notes/
 | Node.js                       | 22.11.0 |                                                                 |
 | Visual Studio Code            | 1.100.2 |                                                                 |
 | WebdriverIO                   | 9.14.0  |                                                                 |
-| dotenv                        | 1.0.1   |                                                                 |
+| dotenv                        | 16.5.0  |                                                                 |
 | @wdio/allure-reporter         | 9.14.0  |                                                                 |
 | @faker-js/faker               | 9.8.0   |                                                                 |
 
@@ -42,6 +42,7 @@ Check then both to add both options in context menu.
 - [expandtesting API demonstration page](https://www.youtube.com/watch?v=bQYvS6EEBZc)
 - [Faker](https://fakerjs.dev/guide/)
 - [Getting Started](https://webdriver.io/docs/gettingstarted#run-test)
+- [action](https://webdriver.io/docs/api/browser/action/)
 
 # Tips:
 

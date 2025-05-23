@@ -55,7 +55,8 @@ export const config = {
     // https://saucelabs.com/platform/platform-configurator
     //
     capabilities: [{
-        // capabilities for local browser web tests
+        // browserName: 'chrome','goog:chromeOptions': {args: ['--start-maximized']} // or "firefox", "microsoftedge", "safari"
+
         browserName: 'chrome','goog:chromeOptions': {args: ['--start-maximized', '--headless']} // or "firefox", "microsoftedge", "safari"
     }],
 
@@ -142,9 +143,16 @@ export const config = {
     // See the full list at http://mochajs.org/
 
     suites: {
-    health_web: ['./test/specs/web/health_web.e2e.js'],
-    // outras suites como users_web, notes_web etc. vão entrar aqui depois
+        health_api: ['./test/specs/api/health_api.e2e.js'],
+        notes_api: ['./test/specs/api/notes_api.e2e.js'],
+        users_api: ['./test/specs/api/users_api.e2e.js'],
+        notes_api_and_web: ['./test/specs/api_and_web/notes_api_and_web.e2e.js'],
+        users_api_and_web: ['./test/specs/api_and_web/users_api_and_web.e2e.js'],
+        health_web: ['./test/specs/web/health_web.e2e.js'],
+        notes_web: ['./test/specs/web/notes_web.e2e.js'],
+        users_web: ['./test/specs/web/users_web.e2e.js'],
     },
+
 
     mochaOpts: {
         ui: 'bdd',
