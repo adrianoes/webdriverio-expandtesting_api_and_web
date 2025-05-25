@@ -63,6 +63,97 @@ describe('/notes_web', () => {
     await browser.deleteJsonFile(randomNumber);
   });
 
+  it.only('get all notes via web', async () => {
+    const randomNumber = faker.string.numeric(8);
+
+    await browser.createUserViaWeb(randomNumber);
+    await browser.logInUserViaWeb(randomNumber);
+
+    const filePath = path.resolve(`test/fixtures/testdata-${randomNumber}.json`);
+    const userData = JSON.parse(await fs.readFile(filePath, 'utf-8'));
+
+    // Arrays para armazenar dados das notas
+    const arrayTitle = [
+      faker.word.words(3),
+      faker.word.words(3),
+      faker.word.words(3),
+      faker.word.words(3)
+    ];
+    const arrayDescription = [
+      faker.word.words(5),
+      faker.word.words(5),
+      faker.word.words(5),
+      faker.word.words(5)
+    ];
+    const arrayCategory = [
+      faker.helpers.arrayElement(['Home', 'Work', 'Personal']),
+      'Home',
+      'Work',
+      'Personal'
+    ];
+
+    // Criar 4 notas em sequência
+    for (let k = 0; k < 4; k++) {
+      await browser.url(baseAppUrl);
+      await browser.scrollAndClick('button=+ Add Note');
+      await browser.scrollAndSetValue('input[name="title"]', arrayTitle[k]);
+      await browser.scrollAndSetValue('textarea[name="description"]', arrayDescription[k]);
+      await browser.scrollAndSelect('select[name="category"]', arrayCategory[k]);
+      await browser.scrollAndClick('button=Create');
+      // Espera a nota aparecer para garantir criação
+      const titleEl = await $(`[data-testid="note-card-title"]*=${arrayTitle[k]}`);
+      await titleEl.waitForDisplayed();
+    }
+
+    // Marcar a última nota (4ª) como concluída
+    const lastNoteToggleSelector = ':nth-child(5) > [data-testid="note-card"] > .card-footer > [data-testid="toggle-note-switch"]';
+    await browser.scrollAndClick(lastNoteToggleSelector);
+
+    // Índices dos elementos no DOM para validação (ajustar conforme estrutura real)
+    const arrayIndex = [2, 3, 4, 5];
+
+    // Estado esperado para cada nota (4ª está marcada)
+    const arrayCompleted = [false, false, false, true];
+
+    // Cores esperadas (copiar os valores CSS do projeto)
+    const arrayColor = ['rgba(50,140,160,1)', 'rgba(92,107,192,1)', 'rgba(255,145,0,1)', 'rgba(40,46,41,0.6)'];
+
+    // Validar cada nota (reverso, como no Cypress original)
+    for (let k = 0; k < 4; k++) {
+      const index = arrayIndex[k];
+      const reverseIndex = 3 - k;
+
+      const titleSelector = `:nth-child(${index}) > [data-testid="note-card"] > [data-testid="note-card-title"]`;
+      const descSelector = `:nth-child(${index}) > [data-testid="note-card"] > .card-body > [data-testid="note-card-description"]`;
+      const toggleSelector = `:nth-child(${index}) > [data-testid="note-card"] > .card-footer > [data-testid="toggle-note-switch"]`;
+
+      // Valida título e descrição visíveis
+      const titleEl = await $(titleSelector);
+      await titleEl.waitForDisplayed();
+      expect(await titleEl.getText()).toEqual(arrayTitle[reverseIndex]);
+
+      const descEl = await $(descSelector);
+      await descEl.waitForDisplayed();
+      expect(await descEl.getText()).toContain(arrayDescription[reverseIndex]);
+
+      // Validar toggle selecionado (checked) ou não
+      const toggleEl = await $(toggleSelector);
+      expect(await toggleEl.isSelected()).toBe(arrayCompleted[k]);
+
+      // Validar cor do título
+      expect(await titleEl.getCSSProperty('background-color')).toHaveProperty('value', arrayColor[k]);
+    }
+
+    // Validar texto de progresso
+    const progressInfo = await $('[data-testid="progress-info"]');
+    await progressInfo.waitForDisplayed();
+    expect(await progressInfo.getText()).toContain('You have 1/4 notes completed in the all categories');
+
+    await browser.deleteUserViaWeb();
+    await browser.deleteJsonFile(randomNumber);
+  });
+
+
   it('update note via web', async () => {
     const randomNumber = faker.string.numeric(8);
 
