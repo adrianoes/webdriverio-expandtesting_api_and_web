@@ -95,6 +95,89 @@ browser.addCommand('scrollAndSetValue', async function (selector, value) {
   await el.setValue(value);
 });
 
+browser.addCommand('deleteNoteViaWeb', async function (randomNumber) {
+  await browser.scrollAndClick('button=Delete');
 
+  const filePath = path.resolve(`test/fixtures/testdata-${randomNumber}.json`);
+  const note = JSON.parse(await fs.readFile(filePath, 'utf-8'));
 
+  const modal = await $('.modal-content');
+  const noteElement = await modal.$(`*=${note.note_title}`);
+  await noteElement.waitForClickable();
+  await noteElement.click();
 
+  const confirmButton = await $('[data-testid="note-delete-confirm"]');
+  await confirmButton.waitForClickable();
+  await confirmButton.click();
+});
+
+browser.addCommand('scrollAndSelect', async function (selector, value) {
+  const element = await $(selector);
+  await element.scrollIntoView();
+  await element.waitForDisplayed();
+  await element.selectByVisibleText(value);
+});
+
+browser.addCommand('toHaveTextContaining', async function (selector, expectedSubstring) {
+  const element = await $(selector);
+  await element.waitForDisplayed();
+  const text = await element.getText();
+
+  const pass = text.includes(expectedSubstring);
+  if (!pass) {
+    throw new Error(`Expected element "${selector}" to contain text "${expectedSubstring}", but got "${text}"`);
+  }
+});
+
+browser.addCommand('createNoteViaWeb', async function(randomNumber, baseAppUrl) {
+  const filePath = path.resolve(`test/fixtures/testdata-${randomNumber}.json`);
+  const user = JSON.parse(await fs.readFile(filePath, 'utf-8'));
+
+  const note = {
+    title: faker.word.words(3),
+    description: faker.word.words(5),
+    category: faker.helpers.arrayElement(['Home', 'Work', 'Personal']),
+    completed: 2,
+  };
+
+  await this.url(baseAppUrl);
+
+  await this.scrollAndClick('button=+ Add Note');
+  await this.scrollAndSelect('select[name="category"]', note.category);
+
+  await this.scrollAndSetValue('input[name="title"]', note.title);
+  await this.scrollAndSetValue('textarea[name="description"]', note.description);
+  await this.scrollAndClick('button=Create');
+
+  const titleEl = await $(`[data-testid="note-card-title"]*=${note.title}`);
+  await titleEl.waitForDisplayed();
+  const descEl = await $(`[data-testid="note-card-description"]*=${note.description}`);
+  await descEl.waitForDisplayed();
+
+  const toggleEl = await $('[data-testid="toggle-note-switch"]');
+  if (await toggleEl.isSelected()) {
+    throw new Error('Expected toggle note switch to be unselected (false)');
+  }
+
+  await this.scrollAndClick('[data-testid="note-view"]');
+  await this.toHaveTextContaining('[data-testid="note-card-title"]', note.title);
+  await this.toHaveTextContaining('[data-testid="note-card-description"]', note.description);
+
+  if (await $('[data-testid="toggle-note-switch"]').isSelected()) {
+    throw new Error('Expected toggle note switch to be unselected (false)');
+  }
+
+  const currentUrl = await this.getUrl();
+  const urlParts = currentUrl.split('/');
+  const noteId = urlParts[4];
+
+  await fs.writeFile(filePath, JSON.stringify({
+    ...user,
+    note_id: noteId,
+    note_title: note.title,
+    note_description: note.description,
+    note_category: note.category,
+    note_completed: note.completed,
+  }));
+  
+});

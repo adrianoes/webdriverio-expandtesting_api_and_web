@@ -1,4 +1,3 @@
-// test/specs/web/users_web.e2e.js
 import { faker } from '@faker-js/faker';
 import fs from 'fs/promises';
 import path from 'path';
@@ -49,27 +48,27 @@ describe('/users_web', () => {
     await browser.createUserViaWeb(randomNumber);
     const filePath = path.resolve(`test/fixtures/testdata-${randomNumber}.json`);
     const user = JSON.parse(await fs.readFile(filePath, 'utf-8'));
-  
+
     await browser.url(`${baseAppUrl}/login`)
-  
+
     await browser.scrollAndSetValue('input[name="email"]', user.user_email);
-    await browser.scrollAndSetValue('input[name="password"]', user.user_password);  
-    await browser.action('wheel').scroll({ deltaY: 99999 }).perform();  
-  
-    await browser.scrollAndClick('button=Login')    
-  
+    await browser.scrollAndSetValue('input[name="password"]', user.user_password);
+    await browser.action('wheel').scroll({ deltaY: 99999 }).perform();
+
+    await browser.scrollAndClick('button=Login')
+
     await $('input[placeholder="Search notes..."]').waitForDisplayed();
-  
+
     const token = await browser.execute(() => window.localStorage.getItem('token'));
-  
+
     await browser.url(`${baseAppUrl}/profile`);
     await $('[data-testid="user-email"]').waitForDisplayed();
-  
+
     await fs.writeFile(filePath, JSON.stringify({
       ...user,
       user_token: token
     }, null, 2));
-    
+
     await browser.deleteUserViaWeb();
     await browser.deleteJsonFile(randomNumber);
   });
@@ -95,7 +94,7 @@ describe('/users_web', () => {
     await browser.scrollAndClick('a[href="/notes/app/profile"]');
     await browser.scrollAndSetValue('input[name="phone"]', faker.string.numeric(12));
     await browser.scrollAndSetValue('input[name="company"]', faker.internet.userName());
-    await browser.action('wheel').scroll({ deltaY: 99999 }).perform(); 
+    await browser.action('wheel').scroll({ deltaY: 99999 }).perform();
     await browser.scrollAndClick('button=Update profile');
 
     const successAlert = await $('[data-testid="alert-message"]');
@@ -137,7 +136,6 @@ describe('/users_web', () => {
     await browser.deleteJsonFile(randomNumber);
   });
 
-
   it("logout user via web", async () => {
     const randomNumber = faker.string.numeric(8);
 
@@ -155,7 +153,6 @@ describe('/users_web', () => {
     await browser.deleteUserViaWeb();
     await browser.deleteJsonFile(randomNumber);
   });
-
 
   it('delete user via web', async () => {
     const randomNumber = faker.string.numeric(8);
