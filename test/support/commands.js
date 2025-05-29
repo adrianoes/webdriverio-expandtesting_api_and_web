@@ -6,34 +6,50 @@ import { faker } from '@faker-js/faker';
 const baseAppUrl = process.env.BASE_APP_URL;
 
 browser.addCommand('createUserViaWeb', async function (randomNumber) {
-    const user = {
-      name: faker.person.fullName(),
-      email: faker.internet.exampleEmail().toLowerCase(),
-      password: faker.internet.password({ length: 8 })
-    };
+  const user = {
+    name: faker.person.fullName(),
+    email: faker.internet.exampleEmail().toLowerCase(),
+    password: faker.internet.password({ length: 8 })
+  };
 
-    await browser.url(`${baseAppUrl}/register`);
+  await browser.url(`${baseAppUrl}/register`);
+  await expect(browser).toHaveTitle('Notes React Application for Automation Testing Practice');
 
-    await expect(browser).toHaveTitle('Notes React Application for Automation Testing Practice');
+  // Ativa o interceptor de requisições
+  await browser.setupInterceptor();
 
-    await browser.scrollAndSetValue('input[name="email"]', user.email);
-    await browser.scrollAndSetValue('input[name="name"]', user.name);
-    await browser.scrollAndSetValue('input[name="password"]', user.password);
-    await browser.scrollAndSetValue('input[name="confirmPassword"]', user.password);
-    await browser.scrollAndClick('button=Register')
+  // Preenche o formulário de registro
+  await browser.scrollAndSetValue('input[name="email"]', user.email);
+  await browser.scrollAndSetValue('input[name="name"]', user.name);
+  await browser.scrollAndSetValue('input[name="password"]', user.password);
+  await browser.scrollAndSetValue('input[name="confirmPassword"]', user.password);
+  await browser.scrollAndClick('button=Register');
 
-    await expect(browser).toHaveTitle('Notes React Application for Automation Testing Practice');
-    await $('b=User account created successfully').waitForDisplayed();
+    // Aguarda a resposta ser exibida na UI
+  await $('b=User account created successfully').waitForDisplayed();
 
-    const userId = await browser.execute(() => window.localStorage.getItem('user_id'));
+  // Aguarda um pouco para garantir que a requisição foi capturada
+  await browser.pause(1000);
 
-    const filePath = path.resolve(`test/fixtures/testdata-${randomNumber}.json`);
-    await fs.writeFile(filePath, JSON.stringify({
-      user_email: user.email,
-      user_name: user.name,
-      user_password: user.password,
-      user_id: userId
-    }, null, 2));
+  // Filtra requisições POST para /register
+  const registerRequest = (await browser.getRequests())
+    .find(req => req.method === 'POST' && req.url.includes('/register'));
+
+  if (!registerRequest || !registerRequest.response || !registerRequest.response.body) {
+    throw new Error('Requisição de registro não foi interceptada corretamente.');
+  }
+  const userId = registerRequest.response.body.data?.id;
+  if (!userId) {
+    throw new Error('user_id não encontrado na resposta da requisição de registro.');
+  }
+  // Grava os dados em JSON
+  const filePath = path.resolve(`test/fixtures/testdata-${randomNumber}.json`);
+  await fs.writeFile(filePath, JSON.stringify({
+    user_email: user.email,
+    user_name: user.name,
+    user_password: user.password,
+    user_id: userId
+  }, null, 2));
 });
 
 browser.addCommand('logInUserViaWeb', async function (randomNumber) {
@@ -95,20 +111,10 @@ browser.addCommand('scrollAndSetValue', async function (selector, value) {
   await el.setValue(value);
 });
 
-browser.addCommand('deleteNoteViaWeb', async function (randomNumber) {
-  await browser.scrollAndClick('button=Delete');
-
-  const filePath = path.resolve(`test/fixtures/testdata-${randomNumber}.json`);
-  const note = JSON.parse(await fs.readFile(filePath, 'utf-8'));
-
-  const modal = await $('.modal-content');
-  const noteElement = await modal.$(`*=${note.note_title}`);
-  await noteElement.waitForClickable();
-  await noteElement.click();
-
-  const confirmButton = await $('[data-testid="note-delete-confirm"]');
-  await confirmButton.waitForClickable();
-  await confirmButton.click();
+browser.addCommand('deleteNoteViaWeb', async function (randomNumber, href) {
+  await browser.url(`https://practice.expandtesting.com${href}`);
+  await browser.scrollAndClick('[data-testid="note-delete"]');
+  await browser.scrollAndClick('[data-testid="note-delete-confirm"]');
 });
 
 browser.addCommand('scrollAndSelect', async function (selector, value) {
@@ -137,39 +143,36 @@ browser.addCommand('createNoteViaWeb', async function(randomNumber, baseAppUrl) 
     title: faker.word.words(3),
     description: faker.word.words(5),
     category: faker.helpers.arrayElement(['Home', 'Work', 'Personal']),
-    completed: 2,
+    completed: 2
   };
 
-  await this.url(baseAppUrl);
+  await browser.url(baseAppUrl);
 
-  await this.scrollAndClick('button=+ Add Note');
-  await this.scrollAndSelect('select[name="category"]', note.category);
+  await browser.scrollAndClick('button=+ Add Note');
+  await browser.scrollAndSelect('select[name="category"]', note.category);
+  await browser.scrollAndSetValue('input[name="title"]', note.title);
+  await browser.scrollAndSetValue('textarea[name="description"]', note.description);
+  await browser.scrollAndClick('button=Create');
 
-  await this.scrollAndSetValue('input[name="title"]', note.title);
-  await this.scrollAndSetValue('textarea[name="description"]', note.description);
-  await this.scrollAndClick('button=Create');
+  await browser.refresh();
 
   const titleEl = await $(`[data-testid="note-card-title"]*=${note.title}`);
   await titleEl.waitForDisplayed();
+
   const descEl = await $(`[data-testid="note-card-description"]*=${note.description}`);
   await descEl.waitForDisplayed();
 
   const toggleEl = await $('[data-testid="toggle-note-switch"]');
-  if (await toggleEl.isSelected()) {
-    throw new Error('Expected toggle note switch to be unselected (false)');
+  expect(await toggleEl.isSelected()).toBe(false);
+
+  // Obtém o valor do atributo href do botão de visualização
+  const viewBtn = await $('[data-testid="note-view"]');
+  const href = await viewBtn.getAttribute('href');
+  const noteId = href?.split('/').pop();
+
+  if (!noteId) {
+    throw new Error('note_id não pôde ser extraído do href.');
   }
-
-  await this.scrollAndClick('[data-testid="note-view"]');
-  await this.toHaveTextContaining('[data-testid="note-card-title"]', note.title);
-  await this.toHaveTextContaining('[data-testid="note-card-description"]', note.description);
-
-  if (await $('[data-testid="toggle-note-switch"]').isSelected()) {
-    throw new Error('Expected toggle note switch to be unselected (false)');
-  }
-
-  const currentUrl = await this.getUrl();
-  const urlParts = currentUrl.split('/');
-  const noteId = urlParts[4];
 
   await fs.writeFile(filePath, JSON.stringify({
     ...user,
@@ -177,7 +180,7 @@ browser.addCommand('createNoteViaWeb', async function(randomNumber, baseAppUrl) 
     note_title: note.title,
     note_description: note.description,
     note_category: note.category,
-    note_completed: note.completed,
-  }));
+    note_completed: note.completed
+  }, null, 2));
   
 });

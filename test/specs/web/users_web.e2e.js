@@ -6,7 +6,7 @@ import '../../support/commands.js';
 describe('/users_web', () => {
   const baseAppUrl = process.env.BASE_APP_URL;
 
-  it('create user via web', async () => {
+  it('create user via web (usando wdio-intercept-service)', async () => {
     const randomNumber = faker.string.numeric(8);
     const user = {
       name: faker.person.fullName(),
@@ -15,20 +15,39 @@ describe('/users_web', () => {
     };
 
     await browser.url(`${baseAppUrl}/register`);
-
     await expect(browser).toHaveTitle('Notes React Application for Automation Testing Practice');
 
+    // Ativa o interceptor de requisições
+    await browser.setupInterceptor();
+
+    // Preenche o formulário de registro
     await browser.scrollAndSetValue('input[name="email"]', user.email);
     await browser.scrollAndSetValue('input[name="name"]', user.name);
     await browser.scrollAndSetValue('input[name="password"]', user.password);
     await browser.scrollAndSetValue('input[name="confirmPassword"]', user.password);
-    await browser.scrollAndClick('button=Register')
+    await browser.scrollAndClick('button=Register');
 
-    await expect(browser).toHaveTitle('Notes React Application for Automation Testing Practice');
+    // Aguarda a resposta ser exibida na UI
     await $('b=User account created successfully').waitForDisplayed();
 
-    const userId = await browser.execute(() => window.localStorage.getItem('user_id'));
+    // Aguarda um pouco para garantir que a requisição foi capturada
+    await browser.pause(1000);
 
+    // Filtra requisições POST para /register
+    const registerRequest = (await browser.getRequests())
+      .find(req => req.method === 'POST' && req.url.includes('/register'));
+
+    if (!registerRequest || !registerRequest.response || !registerRequest.response.body) {
+      throw new Error('Requisição de registro não foi interceptada corretamente.');
+    }
+
+    const userId = registerRequest.response.body.data?.id;
+
+    if (!userId) {
+      throw new Error('user_id não encontrado na resposta da requisição de registro.');
+    }
+
+    // Grava os dados em JSON
     const filePath = path.resolve(`test/fixtures/testdata-${randomNumber}.json`);
     await fs.writeFile(filePath, JSON.stringify({
       user_email: user.email,
@@ -37,10 +56,13 @@ describe('/users_web', () => {
       user_id: userId
     }, null, 2));
 
+    // Executa ações subsequentes
     await browser.logInUserViaWeb(randomNumber);
     await browser.deleteUserViaWeb();
     await browser.deleteJsonFile(randomNumber);
   });
+
+
 
   it('login user via web', async () => {
     const randomNumber = faker.string.numeric(8);

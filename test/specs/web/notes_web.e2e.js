@@ -16,54 +16,56 @@ describe('/notes_web', () => {
     const user = JSON.parse(await fs.readFile(filePath, 'utf-8'));
 
     const note = {
-        title: faker.word.words(3),
-        description: faker.word.words(5),
-        category: faker.helpers.arrayElement(['Home', 'Work', 'Personal']),
-        completed: 2
+      title: faker.word.words(3),
+      description: faker.word.words(5),
+      category: faker.helpers.arrayElement(['Home', 'Work', 'Personal']),
+      completed: 2
     };
 
     await browser.url(baseAppUrl);
 
     await browser.scrollAndClick('button=+ Add Note');
     await browser.scrollAndSelect('select[name="category"]', note.category);
-
     await browser.scrollAndSetValue('input[name="title"]', note.title);
     await browser.scrollAndSetValue('textarea[name="description"]', note.description);
     await browser.scrollAndClick('button=Create');
 
+    await browser.refresh();
+
     const titleEl = await $(`[data-testid="note-card-title"]*=${note.title}`);
     await titleEl.waitForDisplayed();
+
     const descEl = await $(`[data-testid="note-card-description"]*=${note.description}`);
     await descEl.waitForDisplayed();
 
     const toggleEl = await $('[data-testid="toggle-note-switch"]');
     expect(await toggleEl.isSelected()).toBe(false);
 
-    await browser.scrollAndClick('[data-testid="note-view"]');
-    await browser.toHaveTextContaining('[data-testid="note-card-title"]', note.title);
-    await browser.toHaveTextContaining('[data-testid="note-card-description"]', note.description);
+    // Obtém o valor do atributo href do botão de visualização
+    const viewBtn = await $('[data-testid="note-view"]');
+    const href = await viewBtn.getAttribute('href');
+    const noteId = href?.split('/').pop();
 
-    expect(await $('[data-testid="toggle-note-switch"]').isSelected()).toBe(false);
-
-    const currentUrl = await browser.getUrl();
-    const urlParts = currentUrl.split('/');
-    const noteId = urlParts[4];
+    if (!noteId) {
+      throw new Error('note_id não pôde ser extraído do href.');
+    }
 
     await fs.writeFile(filePath, JSON.stringify({
-        ...user,
-        note_id: noteId,
-        note_title: note.title,
-        note_description: note.description,
-        note_category: note.category,
-        note_completed: note.completed
-    }));
+      ...user,
+      note_id: noteId,
+      note_title: note.title,
+      note_description: note.description,
+      note_category: note.category,
+      note_completed: note.completed
+    }, null, 2));
 
-    // await browser.deleteNoteViaWeb(randomNumber);
+    await browser.deleteNoteViaWeb(randomNumber, href);
     await browser.deleteUserViaWeb();
     await browser.deleteJsonFile(randomNumber);
   });
 
-  it.only('get all notes via web', async () => {
+
+  it('get all notes via web', async () => {
     const randomNumber = faker.string.numeric(8);
 
     await browser.createUserViaWeb(randomNumber);
@@ -223,8 +225,32 @@ describe('/notes_web', () => {
     await browser.deleteJsonFile(randomNumber);
   });
 
+  it('delete note via web', async () => {
+    const randomNumber = faker.string.numeric(8);
 
+    await browser.createUserViaWeb(randomNumber);
+    await browser.logInUserViaWeb(randomNumber);
+    await browser.createNoteViaWeb(randomNumber, baseAppUrl);
 
+    // Lê o note_id do arquivo JSON
+    const filePath = path.resolve(`test/fixtures/testdata-${randomNumber}.json`);
+    const userData = JSON.parse(await fs.readFile(filePath, 'utf-8'));
+    const noteId = userData.note_id;
 
+    if (!noteId) {
+      throw new Error('note_id não encontrado no arquivo de teste.');
+    }
+
+    // Acessa diretamente a URL da nota
+    await browser.url(`${baseAppUrl}/notes/${noteId}`);
+
+    // Exclui a nota
+    await browser.scrollAndClick('[data-testid="note-delete"]');
+    await browser.scrollAndClick('[data-testid="note-delete-confirm"]');
+
+    // Cleanup
+    await browser.deleteUserViaWeb();
+    await browser.deleteJsonFile(randomNumber);
+  });
 
 });

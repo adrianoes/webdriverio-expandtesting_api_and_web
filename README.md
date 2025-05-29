@@ -10,6 +10,7 @@ API and WEB testing in [expandtesting](https://practice.expandtesting.com/notes/
 | Visual Studio Code            | 1.100.2 |                                                                 |
 | WebdriverIO                   | 9.14.0  |                                                                 |
 | dotenv                        | 16.5.0  |                                                                 |
+| wdio-intercept-service        | 4.4.1   |                                                                 |
 | @wdio/allure-reporter         | 9.14.0  |                                                                 |
 | @faker-js/faker               | 9.8.0   |                                                                 |
 
@@ -22,13 +23,16 @@ API and WEB testing in [expandtesting](https://practice.expandtesting.com/notes/
   - :white_check_mark: Add "Open with code" action to Windows Explorer directory context menu.
 Check then both to add both options in context menu.
 - Execute ```npm install dotenv``` to install dotenv.
+- Execute ```npm install wdio-intercept-service -D``` to install dotenv.
 - Execute ```npm install --save-dev @wdio/allure-reporter allure-commandline``` to @wdio/allure-reporter.
 - Execute ```npm install @faker-js/faker --save-dev``` to install faker library.
 
 # Tests:
 
-- Execute ```npx wdio run wdio.conf.js``` to execute all tests and keep the browser open. 
+- Execute ```npx wdio run wdio.conf.js``` to execute all tests. 
 - Execute ```npx wdio run wdio.conf.js --watch``` to execute all tests and keep the browser open. 
+- Execute ```npx wdio run wdio.conf.js --spec test/specs/web/users_web.e2e.js``` to execute all tests in the users_web.e2e.js file. 
+- Configure the desired test like ```it.only``` and execute ```npx wdio run wdio.conf.js --spec test/specs/web/users_web.e2e.js``` to execute only the desired test in the users_web.e2e.js file.
 - Execute the command block below to run all the tests, generate and open allure-report.
   ```
     npx wdio run wdio.conf.js
@@ -43,6 +47,7 @@ Check then both to add both options in context menu.
 - [Faker](https://fakerjs.dev/guide/)
 - [Getting Started](https://webdriver.io/docs/gettingstarted#run-test)
 - [action](https://webdriver.io/docs/api/browser/action/)
+- [Intercept Service](https://webdriver.io/docs/wdio-intercept-service/)
 
 # Tips:
 
