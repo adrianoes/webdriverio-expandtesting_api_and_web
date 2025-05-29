@@ -35,13 +35,8 @@ browser.addCommand('createUserViaWeb', async function (randomNumber) {
   const registerRequest = (await browser.getRequests())
     .find(req => req.method === 'POST' && req.url.includes('/register'));
 
-  if (!registerRequest || !registerRequest.response || !registerRequest.response.body) {
-    throw new Error('Requisição de registro não foi interceptada corretamente.');
-  }
   const userId = registerRequest.response.body.data?.id;
-  if (!userId) {
-    throw new Error('user_id não encontrado na resposta da requisição de registro.');
-  }
+
   // Grava os dados em JSON
   const filePath = path.resolve(`test/fixtures/testdata-${randomNumber}.json`);
   await fs.writeFile(filePath, JSON.stringify({

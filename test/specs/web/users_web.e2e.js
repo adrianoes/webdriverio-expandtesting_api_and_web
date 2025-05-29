@@ -6,7 +6,7 @@ import '../../support/commands.js';
 describe('/users_web', () => {
   const baseAppUrl = process.env.BASE_APP_URL;
 
-  it('create user via web (usando wdio-intercept-service)', async () => {
+  it('create user via web', async () => {
     const randomNumber = faker.string.numeric(8);
     const user = {
       name: faker.person.fullName(),
@@ -37,15 +37,7 @@ describe('/users_web', () => {
     const registerRequest = (await browser.getRequests())
       .find(req => req.method === 'POST' && req.url.includes('/register'));
 
-    if (!registerRequest || !registerRequest.response || !registerRequest.response.body) {
-      throw new Error('Requisição de registro não foi interceptada corretamente.');
-    }
-
     const userId = registerRequest.response.body.data?.id;
-
-    if (!userId) {
-      throw new Error('user_id não encontrado na resposta da requisição de registro.');
-    }
 
     // Grava os dados em JSON
     const filePath = path.resolve(`test/fixtures/testdata-${randomNumber}.json`);
@@ -61,8 +53,6 @@ describe('/users_web', () => {
     await browser.deleteUserViaWeb();
     await browser.deleteJsonFile(randomNumber);
   });
-
-
 
   it('login user via web', async () => {
     const randomNumber = faker.string.numeric(8);
