@@ -184,9 +184,6 @@ browser.addCommand('createNoteViaWeb', async function(randomNumber, baseAppUrl) 
   
 });
 
-
-
-
 export async function logInUserViaApi(randomNumber) {
     const rawData = await fs.readFile(`test/fixtures/testdata-${randomNumber}.json`, 'utf-8');
     const user = JSON.parse(rawData);
@@ -232,7 +229,6 @@ export async function deleteJsonFile(randomNumber) {
     }
 }
 
-
 export async function createUserViaApi(randomNumber) {
     const user = {
         user_email: faker.internet.exampleEmail().toLowerCase(),
@@ -261,5 +257,58 @@ export async function createUserViaApi(randomNumber) {
         user_id: response.body.data.id,
         user_name: user.user_name,
         user_password: user.user_password
+    }, null, 2));
+}
+
+export async function deleteNoteViaApi(randomNumber) {
+    const rawData = await fs.readFile(`test/fixtures/testdata-${randomNumber}.json`, 'utf-8');
+    const { note_id, user_token } = JSON.parse(rawData);
+
+    const response = await supertest(baseApiUrl)
+        .delete(`/notes/${note_id}`)
+        .set('X-Auth-Token', user_token)
+        .type('form');
+
+    expect(response.status).toBe(200);
+    expect(response.body.message).toBe('Note successfully deleted');
+}
+
+
+export async function createNoteViaApi(randomNumber) {
+    const rawData = await fs.readFile(`test/fixtures/testdata-${randomNumber}.json`, 'utf-8');
+    const user = JSON.parse(rawData);
+
+    const note = {
+        note_title: faker.word.words(3),
+        note_description: faker.word.words(5),
+        note_category: faker.helpers.arrayElement(['Home', 'Work', 'Personal'])
+    };
+
+    const response = await supertest(baseApiUrl)
+        .post('/notes')
+        .set('X-Auth-Token', user.user_token)
+        .type('form')
+        .send({
+            title: note.note_title,
+            description: note.note_description,
+            category: note.note_category
+        });
+
+    expect(response.status).toBe(200);
+    expect(response.body.message).toBe('Note successfully created');
+    expect(response.body.data.title).toBe(note.note_title);
+    expect(response.body.data.description).toBe(note.note_description);
+    expect(response.body.data.category).toBe(note.note_category);
+    expect(response.body.data.user_id).toBe(user.user_id);
+
+    console.log(response.body.message);
+
+    await fs.writeFile(`test/fixtures/testdata-${randomNumber}.json`, JSON.stringify({
+        ...user,
+        note_id: response.body.data.id,
+        note_title: response.body.data.title,
+        note_description: response.body.data.description,
+        note_completed: response.body.data.completed,
+        note_category: response.body.data.category
     }, null, 2));
 }
