@@ -273,7 +273,6 @@ export async function deleteNoteViaApi(randomNumber) {
     expect(response.body.message).toBe('Note successfully deleted');
 }
 
-
 export async function createNoteViaApi(randomNumber) {
     const rawData = await fs.readFile(`test/fixtures/testdata-${randomNumber}.json`, 'utf-8');
     const user = JSON.parse(rawData);

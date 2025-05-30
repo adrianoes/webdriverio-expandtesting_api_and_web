@@ -64,6 +64,64 @@ describe('/notes_web', () => {
     await browser.deleteJsonFile(randomNumber);
   });
 
+  it('create note via web - invalid title', async () => {
+    const randomNumber = faker.string.numeric(8);
+
+    await browser.createUserViaWeb(randomNumber);
+    await browser.logInUserViaWeb(randomNumber);
+
+    const note = {
+      category: faker.helpers.arrayElement(['Home', 'Work', 'Personal']),
+      completed: 2
+    };
+
+    await browser.url(baseAppUrl);
+
+    await browser.scrollAndClick('button=+ Add Note');
+    await browser.scrollAndSelect('select[name="category"]', note.category);
+    await browser.scrollAndSetValue('input[name="title"]', 'e');  // título inválido
+    await browser.scrollAndSetValue('textarea[name="description"]', faker.word.words(5));
+    await browser.scrollAndClick('button=Create');
+
+    const errorMessage = await $(':nth-child(3) > .invalid-feedback');
+    await errorMessage.waitForDisplayed();
+
+    const errorText = await errorMessage.getText();
+    expect(errorText.includes('Title should be between 4 and 100 characters')).toBe(true);
+
+    await browser.deleteUserViaWeb();
+    await browser.deleteJsonFile(randomNumber);
+  });
+
+  it('create note via web - invalid description', async () => {
+    const randomNumber = faker.string.numeric(8);
+
+    await browser.createUserViaWeb(randomNumber);
+    await browser.logInUserViaWeb(randomNumber);
+
+    const note = {
+      title: faker.word.words(3),
+      category: faker.helpers.arrayElement(['Home', 'Work', 'Personal']),
+      completed: 2
+    };
+
+    await browser.url(baseAppUrl);
+
+    await browser.scrollAndClick('button=+ Add Note');
+    await browser.scrollAndSelect('select[name="category"]', note.category);
+    await browser.scrollAndSetValue('input[name="title"]', note.title);
+    await browser.scrollAndSetValue('textarea[name="description"]', 'e');  // descrição inválida
+    await browser.scrollAndClick('button=Create');
+
+    const errorMessage = await $(':nth-child(4) > .invalid-feedback');
+    await errorMessage.waitForDisplayed();
+
+    const errorText = await errorMessage.getText();
+    expect(errorText.includes('Description should be between 4 and 1000 characters')).toBe(true);
+
+    await browser.deleteUserViaWeb();
+    await browser.deleteJsonFile(randomNumber);
+  });
 
   it('get all notes via web', async () => {
     const randomNumber = faker.string.numeric(8);
@@ -155,7 +213,6 @@ describe('/notes_web', () => {
     await browser.deleteJsonFile(randomNumber);
   });
 
-
   it('update note via web', async () => {
     const randomNumber = faker.string.numeric(8);
 
@@ -195,6 +252,80 @@ describe('/notes_web', () => {
         note_category: note.category,
         note_completed: note.completed,
     }));
+
+    await browser.deleteUserViaWeb();
+    await browser.deleteJsonFile(randomNumber);
+  });
+
+  it('update note via web - invalid title', async () => {
+    const randomNumber = faker.string.numeric(8);
+
+    await browser.createUserViaWeb(randomNumber);
+    await browser.logInUserViaWeb(randomNumber);
+    await browser.createNoteViaWeb(randomNumber, baseAppUrl);
+
+    await browser.refresh();
+
+    await browser.scrollAndClick('button=Edit');
+
+    const note = {
+      category: faker.helpers.arrayElement(['Home', 'Work', 'Personal']),
+      completed: faker.number.int({ min: 1, max: 2 }),
+    };
+
+    await browser.scrollAndSelect('select[name="category"]', note.category);
+    await browser.scrollAndClick('[data-testid="note-completed"]');
+
+    // Clear e digita 'e' no input título
+    const titleInput = await $('input[name="title"]');
+    await titleInput.click();
+    await titleInput.clearValue();
+    await titleInput.setValue('e');
+
+    await browser.scrollAndClick('button=Save');
+
+    const errorMessage = await $(':nth-child(3) > .invalid-feedback');
+    await errorMessage.waitForDisplayed();
+    const errorText = await errorMessage.getText();
+
+    expect(errorText).toContain('Title should be between 4 and 100 characters');
+
+    await browser.deleteUserViaWeb();
+    await browser.deleteJsonFile(randomNumber);
+  });
+
+  it('update note via web - invalid description', async () => {
+    const randomNumber = faker.string.numeric(8);
+
+    await browser.createUserViaWeb(randomNumber);
+    await browser.logInUserViaWeb(randomNumber);
+    await browser.createNoteViaWeb(randomNumber, baseAppUrl);
+
+    await browser.refresh();
+
+    await browser.scrollAndClick('button=Edit');
+
+    const note = {
+      category: faker.helpers.arrayElement(['Home', 'Work', 'Personal']),
+      completed: faker.number.int({ min: 1, max: 2 }),
+    };
+
+    await browser.scrollAndSelect('select[name="category"]', note.category);
+    await browser.scrollAndClick('[data-testid="note-completed"]');
+
+    // Clear e digita 'e' na textarea descrição
+    const descInput = await $('textarea[name="description"]');
+    await descInput.click();
+    await descInput.clearValue();
+    await descInput.setValue('e');
+
+    await browser.scrollAndClick('button=Save');
+
+    const errorMessage = await $(':nth-child(4) > .invalid-feedback');
+    await errorMessage.waitForDisplayed();
+    const errorText = await errorMessage.getText();
+
+    expect(errorText).toContain('Description should be between 4 and 1000 characters');
 
     await browser.deleteUserViaWeb();
     await browser.deleteJsonFile(randomNumber);

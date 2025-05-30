@@ -54,6 +54,54 @@ describe('/users_web', () => {
     await browser.deleteJsonFile(randomNumber);
   });
 
+  it('create user via web - invalid email', async () => {
+    const user = {
+      name: faker.person.fullName(),
+      email: '@' + faker.internet.exampleEmail().toLowerCase(),
+      password: faker.internet.password({ length: 8 })
+    };
+
+    await browser.url(`${baseAppUrl}/register`);
+    await expect(browser).toHaveTitle('Notes React Application for Automation Testing Practice');
+
+    await browser.scrollAndSetValue('input[name="email"]', user.email);
+    await browser.scrollAndSetValue('input[name="name"]', user.name);
+    await browser.scrollAndSetValue('input[name="password"]', user.password);
+    await browser.scrollAndSetValue('input[name="confirmPassword"]', user.password);
+
+    await browser.scrollAndClick('button=Register');
+
+    const alert = await $('[data-testid="alert-message"]');
+    await alert.waitForDisplayed();
+
+    const alertText = await alert.getText();
+    expect(alertText.includes('A valid email address is required')).toBe(true);
+  });
+
+  it('create user via web - mismatched passwords', async () => {
+    const user = {
+      name: faker.person.fullName(),
+      email: faker.internet.exampleEmail().toLowerCase(),
+      password: faker.internet.password({ length: 8 })
+    };
+
+    const wrongConfirmPassword = 'e' + user.password;
+
+    await browser.url(`${baseAppUrl}/register`);
+    await expect(browser).toHaveTitle('Notes React Application for Automation Testing Practice');
+
+    await browser.scrollAndSetValue('input[name="email"]', user.email);
+    await browser.scrollAndSetValue('input[name="name"]', user.name);
+    await browser.scrollAndSetValue('input[name="password"]', user.password);
+    await browser.scrollAndSetValue('input[name="confirmPassword"]', wrongConfirmPassword);
+
+    await browser.scrollAndClick('button=Register');
+
+    const invalidFeedback = await $('.mb-3 > .invalid-feedback');
+    await expect(invalidFeedback).toBeDisplayed();
+    await expect(invalidFeedback).toHaveText("Passwords don't match!");
+  });
+
   it('login user via web', async () => {
     const randomNumber = faker.string.numeric(8);
 
@@ -81,6 +129,56 @@ describe('/users_web', () => {
       user_token: token
     }, null, 2));
 
+    await browser.deleteUserViaWeb();
+    await browser.deleteJsonFile(randomNumber);
+  });
+
+  it('login user via web - wrong password', async () => {
+    const randomNumber = faker.string.numeric(8);
+
+    await browser.createUserViaWeb(randomNumber);
+    const filePath = path.resolve(`test/fixtures/testdata-${randomNumber}.json`);
+    const user = JSON.parse(await fs.readFile(filePath, 'utf-8'));
+
+    await browser.url(`${baseAppUrl}/login`);
+
+    await browser.scrollAndSetValue('input[name="email"]', user.user_email);
+    await browser.scrollAndSetValue('input[name="password"]', 'e' + user.user_password);
+    await browser.scrollAndClick('button=Login');
+
+    const alert = await $('[data-testid="alert-message"]');
+    await alert.waitForDisplayed();
+
+    const alertText = await alert.getText();
+    expect(alertText.includes('Incorrect email address or password')).toBe(true);
+
+    // Cleanup
+    await browser.logInUserViaWeb(randomNumber);
+    await browser.deleteUserViaWeb();
+    await browser.deleteJsonFile(randomNumber);
+  });
+
+  it('login user via web - invalid email', async () => {
+    const randomNumber = faker.string.numeric(8);
+
+    await browser.createUserViaWeb(randomNumber);
+    const filePath = path.resolve(`test/fixtures/testdata-${randomNumber}.json`);
+    const user = JSON.parse(await fs.readFile(filePath, 'utf-8'));
+
+    await browser.url(`${baseAppUrl}/login`);
+
+    await browser.scrollAndSetValue('input[name="email"]', 'e' + user.user_email);
+    await browser.scrollAndSetValue('input[name="password"]', user.user_password);
+    await browser.scrollAndClick('button=Login');
+
+    const alert = await $('[data-testid="alert-message"]');
+    await alert.waitForDisplayed();
+
+    const alertText = await alert.getText();
+    expect(alertText.includes('Incorrect email address or password')).toBe(true);
+
+    // Cleanup
+    await browser.logInUserViaWeb(randomNumber);
     await browser.deleteUserViaWeb();
     await browser.deleteJsonFile(randomNumber);
   });
@@ -118,6 +216,50 @@ describe('/users_web', () => {
     await browser.deleteJsonFile(randomNumber);
   });
 
+  it('update user via web - invalid company name', async () => {
+    const randomNumber = faker.string.numeric(8);
+
+    await browser.createUserViaWeb(randomNumber);
+    await browser.logInUserViaWeb(randomNumber);
+
+    await browser.scrollAndClick('a[href="/notes/app/profile"]');
+    await browser.scrollAndSetValue('input[name="phone"]', faker.string.numeric(12));
+    await browser.scrollAndSetValue('input[name="company"]', 'e');
+    await browser.action('wheel').scroll({ deltaY: 99999 }).perform();
+    await browser.scrollAndClick('button=Update profile');
+
+    const errorMessage = await $('.mb-4 > .invalid-feedback');
+    await errorMessage.waitForDisplayed();
+
+    const errorText = await errorMessage.getText();
+    expect(errorText.includes('company name should be between 4 and 30 characters')).toBe(true);
+
+    await browser.deleteUserViaWeb();
+    await browser.deleteJsonFile(randomNumber);
+  });
+
+  it('update user via web - invalid phone number', async () => {
+    const randomNumber = faker.string.numeric(8);
+
+    await browser.createUserViaWeb(randomNumber);
+    await browser.logInUserViaWeb(randomNumber);
+
+    await browser.scrollAndClick('a[href="/notes/app/profile"]');
+    await browser.scrollAndSetValue('input[name="phone"]', faker.string.numeric(2));
+    await browser.scrollAndSetValue('input[name="company"]', faker.internet.userName());
+    await browser.action('wheel').scroll({ deltaY: 99999 }).perform();
+    await browser.scrollAndClick('button=Update profile');
+
+    const errorMessage = await $(':nth-child(2) > .mb-2 > .invalid-feedback');
+    await errorMessage.waitForDisplayed();
+
+    const errorText = await errorMessage.getText();
+    expect(errorText.includes('Phone number should be between 8 and 20 digits')).toBe(true);
+
+    await browser.deleteUserViaWeb();
+    await browser.deleteJsonFile(randomNumber);
+  });
+
   it("update user's password via web", async () => {
     const randomNumber = faker.string.numeric(8);
 
@@ -143,6 +285,35 @@ describe('/users_web', () => {
     await successAlert.waitForDisplayed();
     const alertText = await successAlert.getText();
     expect(alertText).toContain('The password was successfully updated');
+
+    await browser.deleteUserViaWeb();
+    await browser.deleteJsonFile(randomNumber);
+  });
+
+  it("update user's password via web - same password", async () => {
+    const randomNumber = faker.string.numeric(8);
+
+    await browser.createUserViaWeb(randomNumber);
+    await browser.logInUserViaWeb(randomNumber);
+
+    const filePath = path.resolve(`test/fixtures/testdata-${randomNumber}.json`);
+    const userData = JSON.parse(await fs.readFile(filePath, 'utf-8'));
+
+    const user = {
+      user_password: userData.user_password,
+    };
+
+    await browser.scrollAndClick('a[href="/notes/app/profile"]');
+    await browser.scrollAndClick('[data-testid="change-password"]');
+    await browser.scrollAndSetValue('input[data-testid="current-password"]', user.user_password);
+    await browser.scrollAndSetValue('input[data-testid="new-password"]', user.user_password);
+    await browser.scrollAndSetValue('input[data-testid="confirm-password"]', user.user_password);
+    await browser.scrollAndClick('button=Update password');
+
+    const alert = await $('[data-testid="alert-message"]');
+    await alert.waitForDisplayed();
+    const alertText = await alert.getText();
+    expect(alertText).toContain('The new password should be different from the current password');
 
     await browser.deleteUserViaWeb();
     await browser.deleteJsonFile(randomNumber);
