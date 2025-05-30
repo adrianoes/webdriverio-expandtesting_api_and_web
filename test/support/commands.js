@@ -2,6 +2,10 @@
 import fs from 'fs/promises';
 import path from 'path';
 import { faker } from '@faker-js/faker';
+// test/support/commands.js
+import supertest from 'supertest';
+
+const baseApiUrl = process.env.BASE_API_URL;
 
 const baseAppUrl = process.env.BASE_APP_URL;
 
@@ -179,3 +183,83 @@ browser.addCommand('createNoteViaWeb', async function(randomNumber, baseAppUrl) 
   }, null, 2));
   
 });
+
+
+
+
+export async function logInUserViaApi(randomNumber) {
+    const rawData = await fs.readFile(`test/fixtures/testdata-${randomNumber}.json`, 'utf-8');
+    const user = JSON.parse(rawData);
+
+    const response = await supertest(baseApiUrl)
+        .post('/users/login')
+        .send({
+            email: user.user_email,
+            password: user.user_password
+        });
+
+    expect(response.status).toBe(200);
+    expect(response.body.success).toBe(true);
+    expect(response.body.message).toBe('Login successful');
+    expect(response.body.data.email).toBe(user.user_email);
+    expect(response.body.data.name).toBe(user.user_name);
+    expect(response.body.data.id).toBe(user.user_id);
+
+    await fs.writeFile(`test/fixtures/testdata-${randomNumber}.json`, JSON.stringify({
+        ...user,
+        user_token: response.body.data.token
+    }, null, 2));
+}
+
+export async function deleteUserViaApi(randomNumber) {
+    const rawData = await fs.readFile(`test/fixtures/testdata-${randomNumber}.json`, 'utf-8');
+    const { user_token } = JSON.parse(rawData);
+
+    const response = await supertest(baseApiUrl)
+        .delete('/users/delete-account')
+        .set('X-Auth-Token', user_token);
+
+    expect(response.status).toBe(200);
+    expect(response.body.success).toBe(true);
+    expect(response.body.message).toBe('Account successfully deleted');
+}
+
+export async function deleteJsonFile(randomNumber) {
+    try {
+        await fs.unlink(`test/fixtures/testdata-${randomNumber}.json`);
+    } catch (err) {
+        console.warn(`Arquivo testdata-${randomNumber}.json não encontrado ou já deletado.`);
+    }
+}
+
+
+export async function createUserViaApi(randomNumber) {
+    const user = {
+        user_email: faker.internet.exampleEmail().toLowerCase(),
+        user_name: faker.person.fullName(),
+        user_password: faker.internet.password({ length: 8 })
+    };
+
+    const response = await supertest(baseApiUrl)
+        .post('/users/register')
+        .send({
+      name: user.user_name,
+      email: user.user_email,
+      password: user.user_password
+    });
+
+    expect(response.status).toBe(201);
+    expect(response.body.success).toBe(true);
+    expect(response.body.status).toBe(201);
+    expect(response.body.message).toBe('User account created successfully');
+    expect(response.body.data.email).toBe(user.user_email);
+    expect(response.body.data.name).toBe(user.user_name);
+
+
+    await fs.writeFile(`test/fixtures/testdata-${randomNumber}.json`, JSON.stringify({
+        user_email: user.user_email,
+        user_id: response.body.data.id,
+        user_name: user.user_name,
+        user_password: user.user_password
+    }, null, 2));
+}

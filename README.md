@@ -13,6 +13,7 @@ API and WEB testing in [expandtesting](https://practice.expandtesting.com/notes/
 | wdio-intercept-service        | 4.4.1   |                                                                 |
 | @wdio/allure-reporter         | 9.14.0  |                                                                 |
 | @faker-js/faker               | 9.8.0   |                                                                 |
+| supertest                     | 7.1.1   |                                                                 |
 
 # Installation:
 
@@ -26,6 +27,7 @@ Check then both to add both options in context menu.
 - Execute ```npm install wdio-intercept-service -D``` to install dotenv.
 - Execute ```npm install --save-dev @wdio/allure-reporter allure-commandline``` to @wdio/allure-reporter.
 - Execute ```npm install @faker-js/faker --save-dev``` to install faker library.
+- Execute ```npm install supertest``` to install supertest library.
 
 # Tests:
 
@@ -48,6 +50,7 @@ Check then both to add both options in context menu.
 - [Getting Started](https://webdriver.io/docs/gettingstarted#run-test)
 - [action](https://webdriver.io/docs/api/browser/action/)
 - [Intercept Service](https://webdriver.io/docs/wdio-intercept-service/)
+- [supertest](https://www.npmjs.com/package/supertest)
 
 # Tips:
 
