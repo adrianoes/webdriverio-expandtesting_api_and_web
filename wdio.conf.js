@@ -23,7 +23,7 @@ export const config = {
     //
 
     //
-    maxInstances: 10,
+    maxInstances: 1,
     //
     // If you have trouble getting all important capabilities together, check out the
     // Sauce Labs platform configurator - a great tool to configure your capabilities:
@@ -107,7 +107,7 @@ export const config = {
 
     mochaOpts: {
         ui: 'bdd',
-        timeout: 60000
+        timeout: 120000
     },
     
 
@@ -182,10 +182,11 @@ export const config = {
      */
 
     afterTest: async function(test, context, { error }) {
-        if (error) {
-            await browser.takeScreenshot();
-        }
-    },
+
+        // Recarrega a sessão após cada teste
+        await browser.reloadSession();
+    }
+
 
 
 

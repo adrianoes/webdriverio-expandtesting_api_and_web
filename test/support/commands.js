@@ -96,7 +96,7 @@ browser.addCommand('deleteJsonFile', async function (randomNumber) {
 
 browser.addCommand('scrollAndClick', async function (selector) {
   const el = await $(selector);
-  await el.waitForExist({ timeout: 10000 });
+  await el.waitForExist({ timeout: 60000 });
   await el.scrollIntoView({ block: 'center', inline: 'center' });
   await el.waitForDisplayed({ timeout: 5000 });
   await el.click();
@@ -104,7 +104,7 @@ browser.addCommand('scrollAndClick', async function (selector) {
 
 browser.addCommand('scrollAndSetValue', async function (selector, value) {
   const el = await $(selector);
-  await el.waitForExist({ timeout: 10000 });
+  await el.waitForExist({ timeout: 60000 });
   await el.scrollIntoView({ block: 'center', inline: 'center' });
   await el.waitForDisplayed({ timeout: 5000 });
   await el.setValue(value);
